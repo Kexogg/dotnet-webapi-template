@@ -1,0 +1,7 @@
+﻿<Solution>
+  <Project Path="WebApi.Application\WebApi.Application.csproj" Type="Classic C#" />
+  <Project Path="WebApi.Domain\WebApi.Domain.csproj" Type="Classic C#" />
+  <Project Path="WebApi.Infrastructure\WebApi.Infrastructure.csproj" Type="Classic C#" />
+  <Project Path="WebApi.Presentation\WebApi.Presentation.csproj" Type="Classic C#" />
+  <Project Path="WebApi.Startup\WebApi.Startup.csproj" Type="Classic C#" />
+</Solution>
