@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Domain.Entities;
 using WebApi.Domain.Entities.Base;
 
-namespace WebApi.Infrastructure.Persistence;
+namespace WebApi.Infrastructure.Persist;
 
 public sealed class DatabaseContext : DbContext
 {
@@ -28,7 +28,7 @@ public sealed class DatabaseContext : DbContext
         return await base.SaveChangesAsync(cancellationToken);
     }
 
-    private void UpdateTimestamp()
+    private static void UpdateTimestamp()
     {
         var entities = ChangeTracker.Entries()
             .Where(x => x is { Entity: BaseEntity, State: EntityState.Modified });
