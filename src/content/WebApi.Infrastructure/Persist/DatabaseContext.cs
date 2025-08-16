@@ -28,7 +28,7 @@ public sealed class DatabaseContext : DbContext
         return await base.SaveChangesAsync(cancellationToken);
     }
 
-    private static void UpdateTimestamp()
+    private void UpdateTimestamp()
     {
         var entities = ChangeTracker.Entries()
             .Where(x => x is { Entity: BaseEntity, State: EntityState.Modified });

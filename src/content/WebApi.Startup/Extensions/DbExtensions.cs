@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Domain.Entities;
 using WebApi.Domain.Enums;
 using WebApi.Infrastructure;
-using WebApi.Infrastructure.Persistence;
+using WebApi.Infrastructure.Persist;
 
 namespace WebApi.Startup.Extensions;
 
