@@ -12,9 +12,11 @@ public static class DbExtensions
     {
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         await context.Database.MigrateAsync();
         if (!await context.Users.AnyAsync())
         {
+            logger.LogInformation("No users found, seeding the database with an admin user.");
             var bootstrap = app.Configuration.GetSection("Bootstrap");
             var passwordHasher = new PasswordHasher();
             await context.Users.AddAsync(new UserEntity

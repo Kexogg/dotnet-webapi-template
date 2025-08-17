@@ -8,53 +8,40 @@ namespace WebApi.Startup.Extensions;
 /// </summary>
 public static class SerilogExtensions
 {
+    /// <summary>
+    ///    Adds Serilog to the web application builder for logging.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <returns></returns>
     public static WebApplicationBuilder AddSerilog(this WebApplicationBuilder builder)
     {
-        builder.Services.AddSerilogServices();
-        builder.Host.ConfigureSerilog();
+        builder.Services.AddSingleton(Log.Logger);
+        builder.Host.UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .Configure()
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services);
+        });
         return builder;
     }
 
-    /// <summary>
-    ///     Adds Serilog services to the service collection.
-    /// </summary>
-    /// <param name="services">
-    ///     The service collection to add Serilog services to.
-    /// </param>
-    public static IServiceCollection AddSerilogServices(this IServiceCollection services)
-    {
-        return services
-            .AddSingleton(Log.Logger);
-    }
 
     /// <summary>
-    ///     Configures Serilog for the application.
+    ///    Configures Serilog for the application.
     /// </summary>
-    /// <param name="hostBuilder">
-    ///     The host builder to configure Serilog for.
-    /// </param>
-    public static IHostBuilder ConfigureSerilog(this IHostBuilder hostBuilder)
+    public static LoggerConfiguration Configure(this LoggerConfiguration loggerConfiguration)
     {
-        return hostBuilder.UseSerilog((context, services, configuration) =>
-        {
-            configuration
-                .ReadFrom.Configuration(context.Configuration)
-                .ReadFrom.Services(services)
-                .GetConfiguration();
-        });
-    }
+        const string logFormat = "[{Timestamp:o}] [{Level}] [T-{TraceId}] {Message}{NewLine}{Exception}";
 
-    private static void GetConfiguration(this LoggerConfiguration loggerConfiguration)
-    {
-        const string logFormat =
-            "[{Timestamp:yyyy.MM.dd HH:mm:ss:ms}] [{Level}] [T-{TraceId}] {Message}{NewLine}{Exception}";
 
-        loggerConfiguration
+        return loggerConfiguration
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
             .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
             .MinimumLevel.Override("System", LogEventLevel.Information)
             .MinimumLevel.Is(LogEventLevel.Information)
             .Enrich.FromLogContext()
-            .WriteTo.Async(option => { option.Console(LogEventLevel.Information, logFormat); });
+            .WriteTo.Async(option => { option.Console(LogEventLevel.Information, logFormat); })
+            .WriteTo.OpenTelemetry();
     }
 }
