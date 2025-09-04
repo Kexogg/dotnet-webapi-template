@@ -4,15 +4,15 @@ using WebApi.Infrastructure;
 using WebApi.Startup.Extensions;
 using WebApi.Startup.Middlewares;
 
-Log.Logger = new LoggerConfiguration().Configure().CreateBootstrapLogger();
+Log.Logger = new LoggerConfiguration().ConfigureBootstrapLogger().CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting application");
-    var builder = WebApplication.CreateBuilder(args);
-
-
-    builder.AddSerilog()
+    var builder = WebApplication
+        .CreateBuilder(args)
+        .AddOpenTelemetry()
+        .AddSerilog()
         .AddAppSettings()
         .AddCors()
         .AddJwtAuth()

@@ -1,5 +1,7 @@
 using Serilog;
+using Serilog.Enrichers.Span;
 using Serilog.Events;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace WebApi.Startup.Extensions;
 
@@ -34,14 +36,34 @@ public static class SerilogExtensions
     {
         const string logFormat = "[{Timestamp:o}] [{Level}] [T-{TraceId}] {Message}{NewLine}{Exception}";
 
+        var config = loggerConfiguration
+            .Enrich.FromLogContext()
+            .Enrich.WithSpan()
+            .WriteTo.Console(LogEventLevel.Information, logFormat);
+        var endpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+        if (!string.IsNullOrEmpty(endpoint))
+        {
+            config.WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = endpoint;
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes["service.name"] = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "WebApi";
+                options.ResourceAttributes["service.instance.id"] = Environment.MachineName;
+            });
+        }
+        return config;
+    }
+
+    /// <summary>
+    /// Configure minimal bootstrap logger
+    /// </summary>
+    public static LoggerConfiguration ConfigureBootstrapLogger(this LoggerConfiguration loggerConfiguration)
+    {
+        const string logFormat = "[{Timestamp:o}] [{Level}] {Message}{NewLine}{Exception}";
 
         return loggerConfiguration
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-            .MinimumLevel.Override("System", LogEventLevel.Information)
             .MinimumLevel.Is(LogEventLevel.Information)
             .Enrich.FromLogContext()
-            .WriteTo.Async(option => { option.Console(LogEventLevel.Information, logFormat); })
-            .WriteTo.OpenTelemetry();
+            .WriteTo.Console(LogEventLevel.Information, logFormat);
     }
 }
