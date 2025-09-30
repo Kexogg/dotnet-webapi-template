@@ -22,17 +22,17 @@ public static class SerilogExtensions
         {
             configuration
                 .Configure()
+                .AddOtel(builder)
                 .ReadFrom.Configuration(context.Configuration)
                 .ReadFrom.Services(services);
         });
         return builder;
     }
 
-
     /// <summary>
     ///    Configures Serilog for the application.
     /// </summary>
-    public static LoggerConfiguration Configure(this LoggerConfiguration loggerConfiguration)
+    private static LoggerConfiguration Configure(this LoggerConfiguration loggerConfiguration)
     {
         const string logFormat = "[{Timestamp:o}] [{Level}] [T-{TraceId}] {Message}{NewLine}{Exception}";
 
@@ -40,18 +40,32 @@ public static class SerilogExtensions
             .Enrich.FromLogContext()
             .Enrich.WithSpan()
             .WriteTo.Console(LogEventLevel.Information, logFormat);
-        var endpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
-        if (!string.IsNullOrEmpty(endpoint))
-        {
-            config.WriteTo.OpenTelemetry(options =>
-            {
-                options.Endpoint = endpoint;
-                options.Protocol = OtlpProtocol.Grpc;
-                options.ResourceAttributes["service.name"] = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "WebApi";
-                options.ResourceAttributes["service.instance.id"] = Environment.MachineName;
-            });
-        }
         return config;
+    }
+
+    private static LoggerConfiguration AddOtel(this LoggerConfiguration loggerConfiguration,
+        WebApplicationBuilder builder)
+    {
+        var endpoint = builder.Configuration.GetValue<string>("Otel:OtlpEndpoint") ??
+                       Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            return loggerConfiguration;
+        }
+
+        var appName = builder.Configuration.GetValue<string>("Otel:ServiceName") ??
+                      Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ??
+                      System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name ?? "unknown_service";
+
+        return loggerConfiguration.WriteTo.OpenTelemetry(options =>
+        {
+            options.Endpoint = endpoint;
+            options.Protocol = OtlpProtocol.Grpc;
+            options.ResourceAttributes["service.name"] = appName;
+            options.ResourceAttributes["service.instance.id"] = Environment.MachineName;
+            options.ResourceAttributes["deployment.environment"] = builder.Environment.EnvironmentName;
+        });
     }
 
     /// <summary>
